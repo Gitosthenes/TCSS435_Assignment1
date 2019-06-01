@@ -236,7 +236,7 @@ public class Main {
                                     newBoard.getH1(goal) + (node.getDepth() + 1) :
                                     newBoard.getH2(goal) + (node.getDepth() + 1));
                             pq.add(child);
-
+                            numCreated++;
                         }
                     }
                 }
