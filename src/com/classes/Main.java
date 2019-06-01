@@ -1,9 +1,19 @@
 package com.classes;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.Stack;
+import java.util.PriorityQueue;
 
+/**
+ * Controller class for the program. Reads input, checks for solvability and passes input to specified search algorithm.
+ */
 public class Main {
 
+    /* Global Variables: */
     private static final String[][] GOAL_STATES = new String[2][16];
 
     private static Node root;
@@ -13,10 +23,19 @@ public class Main {
     private static int maxFringe;
     private static Set<String> visitedBoards;
 
-    public static void breadthFirst(final Board initial, final String[] goal) {
+    /**
+     * Tries to solve 15-puzzle board given using breadth-first search. If a solution is found, prints:
+     * - The depth it was found at.
+     * - The total number of nodes created.
+     * - The total number of nodes expanded (checked for goal state).
+     * - The size of the fringe at its largest.
+     *
+     * If no solution is found, prints (-1, 0, 0, 0).
+     */
+    private static void breadthFirst(final Board initial, final String[] goal) {
         Queue<Node> q = new LinkedList<>();
         solutionFound = false;
-        root = new Node(null, initial, 0);
+        root = new Node(initial, 0);
         visitedBoards = new HashSet<>();
         numCreated = 1;
         numExpanded = 0;
@@ -39,12 +58,12 @@ public class Main {
                 System.out.println(node.getDepth() + ", " + numCreated + ", " + numExpanded + ", " + maxFringe);
                 break;
             } else {
-                for (Move move : Move.values()) {
+                for (Board.Move move : Board.Move.values()) {
                     if (node.getBoard().isLegalMove(move)) {
                         Board newBoard = node.getBoard().moveSpaceTile(move);
                         if (!visitedBoards.contains(newBoard.toString())) {
                             numCreated++;
-                            q.add(new Node(node, newBoard, node.getDepth() + 1));
+                            q.add(new Node(newBoard, node.getDepth() + 1));
                         }
                     }
                 }
@@ -55,10 +74,19 @@ public class Main {
         }
     }
 
-    public static void depthSearch(final Board initial, final String[] goal, final int... limit) {
+    /**
+     * Tries to solve 15-puzzle board given using depth-first/depth-limited search. If a solution is found, prints:
+     * - The depth it was found at.
+     * - The total number of nodes created.
+     * - The total number of nodes expanded (checked for goal state).
+     * - The size of the fringe at its largest.
+     *
+     * If no solution is found, prints (-1, 0, 0, 0).
+     */
+    private static void depthSearch(final Board initial, final String[] goal, final int... limit) {
         Stack<Node> s = new Stack<>();
         solutionFound = false;
-        root = new Node(null, initial, 0);
+        root = new Node(initial, 0);
         visitedBoards = new HashSet<>();
         numCreated = 1;
         numExpanded = 0;
@@ -78,12 +106,12 @@ public class Main {
                 break;
             } else if (limit.length == 0 || node.getDepth() < limit[0]) {
                 Stack<Node> temp = new Stack<>();
-                for (Move move : Move.values()) {
+                for (Board.Move move : Board.Move.values()) {
                     if (node.getBoard().isLegalMove(move)) {
                         Board newBoard = node.getBoard().moveSpaceTile(move);
                         if (!visitedBoards.contains(newBoard.toString())) {
                             numCreated++;
-                            temp.push(new Node(node, newBoard, node.getDepth() + 1));
+                            temp.push(new Node(newBoard, node.getDepth() + 1));
                         }
                     }
                 }
@@ -97,14 +125,27 @@ public class Main {
         }
     }
 
-    public static void greedyBestFirst (final Board initial, final String[] goal, final String heuristic) {
-        PriorityQueue<Node> pq = new PriorityQueue<>(new NodeHeuristicComparator());
+    /**
+     * Tries to solve 15-puzzle board given using greedy best-first search. The given heuristic is either the total
+     * number of misplaced tiles on the board (h1) or the sum of the manhattan distances between where a tile is and
+     * where it is supposed to be.
+     *
+     * If a solution is found, prints:
+     * - The depth it was found at.
+     * - The total number of nodes created.
+     * - The total number of nodes expanded (checked for goal state).
+     * - The size of the fringe at its largest.
+     *
+     * If no solution is found, prints (-1, 0, 0, 0).
+     */
+    private static void greedyBestFirst (final Board initial, final String[] goal, final String heuristic) {
+        PriorityQueue<Node> pq = new PriorityQueue<>(new Node.NodeHeuristicComparator());
         solutionFound = false;
         visitedBoards = new HashSet<>();
         numCreated = 1;
         numExpanded = 0;
         maxFringe = 0;
-        root = new Node(null, initial, 0, heuristic.equals("h1")?initial.getH1(goal):initial.getH2(goal));
+        root = new Node(initial, 0, heuristic.equals("h1")?initial.getH1(goal):initial.getH2(goal));
         long startTime = System.currentTimeMillis();
 
         pq.add(root);
@@ -123,14 +164,14 @@ public class Main {
                 System.out.println(node.getDepth() + ", " + numCreated + ", " + numExpanded + ", " + maxFringe);
                 break;
             } else {
-                for (Move move : Move.values()) {
+                for (Board.Move move : Board.Move.values()) {
                     if (node.getBoard().isLegalMove(move)) {
                         Board newBoard = node.getBoard().moveSpaceTile(move);
                         if (!visitedBoards.contains(newBoard.toString())) {
                             numCreated++;
-                            pq.add(new Node(node, newBoard, node.getDepth() + 1, heuristic.equals("h1") ?
-                                                                                            newBoard.getH1(goal):
-                                                                                            newBoard.getH2(goal)));
+                            pq.add(new Node(newBoard, node.getDepth() + 1, heuristic.equals("h1") ?
+                                                                                    newBoard.getH1(goal):
+                                                                                    newBoard.getH2(goal)));
                         }
                     }
                 }
@@ -141,12 +182,25 @@ public class Main {
         }
     }
 
-    public static void aStar (final Board initial, final String[] goal, final String heuristic) {
-        PriorityQueue<Node> pq = new PriorityQueue<>(new NodeHeuristicComparator());
-        PriorityQueue<Node> solutions = new PriorityQueue<>(new NodeHeuristicComparator());
+    /**
+     * Tries to solve 15-puzzle board given using A* search. The given heuristic is either the total
+     * number of misplaced tiles on the board (h1) or the sum of the manhattan distances between where a tile is and
+     * where it is supposed to be.
+     *
+     * If a solution is found, prints:
+     * - The depth it was found at.
+     * - The total number of nodes created.
+     * - The total number of nodes expanded (checked for goal state).
+     * - The size of the fringe at its largest.
+     *
+     * If no solution is found, prints (-1, 0, 0, 0).
+     */
+    private static void aStar (final Board initial, final String[] goal, final String heuristic) {
+        PriorityQueue<Node> pq = new PriorityQueue<>(new Node.NodeHeuristicComparator());
+        PriorityQueue<Node> solutions = new PriorityQueue<>(new Node.NodeHeuristicComparator());
         visitedBoards = new HashSet<>();
 
-        root = new Node(null, initial, 0, heuristic.equals("h1") ? initial.getH1(goal) : initial.getH2(goal));
+        root = new Node(initial, 0, heuristic.equals("h1") ? initial.getH1(goal) : initial.getH2(goal));
         numCreated = 1;
         numExpanded = 0;
         maxFringe = 0;
@@ -174,11 +228,11 @@ public class Main {
                 solutions.add(node);
             } else {
                 visitedBoards.add(node.getBoard().toString());
-                for (Move move : Move.values()) {
+                for (Board.Move move : Board.Move.values()) {
                     if (node.getBoard().isLegalMove(move)) {
                         Board newBoard = node.getBoard().moveSpaceTile(move);
                         if (!visitedBoards.contains(newBoard.toString())) {
-                            Node child = new Node(node, newBoard, node.getDepth() + 1, heuristic.equals("h1") ?
+                            Node child = new Node(newBoard, node.getDepth() + 1, heuristic.equals("h1") ?
                                     newBoard.getH1(goal) + (node.getDepth() + 1) :
                                     newBoard.getH2(goal) + (node.getDepth() + 1));
                             pq.add(child);
@@ -196,7 +250,14 @@ public class Main {
         }
     }
 
-    public static int solvable(final Board board) {
+    /**
+     * Determines which of the goal board states that the given board is solvable to.
+     *
+     * If the evenness of the total number of inversions matches the evenness of the row that the space character is on,
+     * then the board is solvable to the following goal state: [1,2,3,4,5,6,7,8,9,A,B,C,D,F,E, ].
+     * Otherwise, the board is solvable to the other goal state: [1,2,3,4,5,6,7,8,9,A,B,C,D,E,F, ]
+     */
+    private static int solvable(final Board board) {
         String[] boardAsStringArray = board.getBoardAsLine();
         int[] boardAsIntArray = new int[boardAsStringArray.length];
         int spaceRow = board.getSpaceCoordinates()[0];
@@ -242,6 +303,10 @@ public class Main {
         }
     }
 
+    /**
+     * Main method and controller method for class. Takes input arguments and passes them to relevant search method to
+     * be solved.
+     */
     public static void main(String[] args) {
         GOAL_STATES[0] = "123456789ABCDEF ".split("");
         GOAL_STATES[1] = "123456789ABCDFE ".split("");
